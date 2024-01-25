@@ -1,7 +1,14 @@
 from paramiko import SSHClient
 import requests
 import re
+
+# try:
 import credentials
+# except:
+#     print("Credentials were not found, please provide the following to set up this script")
+#     new_host = input("Please provide the IP address of the target device (e.g. 192.168.0.1): ")
+#     new_user = input("Please provide a username: ")
+#     new_password = input("Please provide a password: ")
 
 speedtest_flag = None
 
@@ -19,10 +26,10 @@ print("Script running, will attempt to create SSH session")
 client = SSHClient()
 client.load_system_host_keys()
 try:
-    client.connect("192.168.1.200", username=credentials.ssh_username, password=credentials.ssh_password)
+    client.connect(credentials.host, username=credentials.ssh_username, password=credentials.ssh_password)
     print("SSH connection succesful")
 except:
-    print("A connection could not be established")
+    print("A connection could not be established. Please ensure the target device is connected to the network, and that the credentials and IP address in the credentials.py file are correct.")
     input("Press enter to close")
     quit()
 
@@ -57,6 +64,7 @@ else:
 # Update packages
 
 print("Attempting to update packages")
+# Some form of progress bar, indicator script is still running?
 stdin, stdout, stderr = client.exec_command('sudo apt-get update && sudo apt-get upgrade -y --autoremove')
 exit_code = stdout.channel.recv_exit_status() # Blocks until command completion
 
@@ -65,7 +73,7 @@ none_updated = re.search("0 upgraded", stdout.read().decode("utf8"))
 if exit_code == 0 and none_updated != None:
     print("Package lists were updated. There was nothing to upgrade.")
 elif exit_code == 0:
-    print(f"STDOUT: {stdout.read().decode('utf8')}")
+    # print(f"STDOUT: {stdout.read().decode('utf8')}")  # This STDOUT is blank?
     print("Updates were succesful")
     # Need regex to extract the number and possibly name of the packages.
 else:
@@ -81,7 +89,7 @@ client.close()
 
 # Check plex web interface is up
 
-plexServer = requests.get("http://192.168.1.200:32400/web/index.html#!/")
+plexServer = requests.get(f"http://{credentials.host}:32400/web/index.html#!/")
 
 if plexServer.status_code != 200:
     print(f"Plex server web interface was not reachable, returned code {plexServer.status_code}")
